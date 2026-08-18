@@ -1,4 +1,4 @@
-mode = "train"
+mode = "predict"
 
 [project] 
 name = "Project Name"
@@ -11,3 +11,7 @@ author = "Author Name"
 filepath="./logs/project_name.log"
 rotation="50MB"
 
+[camera]
+source = 0
+width = 640
+height = 480
