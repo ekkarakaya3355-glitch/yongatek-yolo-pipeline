@@ -1,0 +1,64 @@
+image: python:3.8-slim-buster
+
+stages:
+  - code-quality-test
+  - unit-integration-test
+  - end2end-test
+  - docker-build-test
+
+before_script:
+  - pip install -r requirements.txt
+
+code-quality:
+  stage: code-quality-test
+  tags:
+    - code
+  script:
+    - pylint app/ tests/ app.py
+  rules:
+    - changes:
+      - app/**/*
+      - tests/**/*
+      - app.py
+
+unit:
+  stage: unit-integration-test
+  tags:
+    - code
+  script:
+    - pytest
+  rules:
+    - changes:
+      - app/**/*
+      - tests/**/*
+
+end2end:
+  stage: end2end-test
+  tags:
+    - code
+  script:
+    - python app.py --env local
+  rules:
+    - changes:
+      - app/**/*
+      - tests/**/*
+      - app.py
+
+docker-build:
+  stage: docker-build-test
+  image: docker:24.0.5
+  tags:
+    - docker
+  services:
+    - docker:24.0.5-dind
+  script:
+    - docker build --tag $CI_PROJECT_NAME:latest .
+  before_script:
+    - [] 
+  rules:
+    - changes:
+      - app/**/*
+      - tests/**/*
+      - app.py
+      - Dockerfile
+
