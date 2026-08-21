@@ -1,45 +1,37 @@
-from dataclasses import dataclass, field
-from typing import Dict
-
 from app.config import Configs
 from app.logger import Logger
-from app import train,inference
-
-@dataclass
-class app:
-    """
-    Uygulamanın ana sınıfı. Config'e göre ilgili modu çalıştırır.
-
-    Args
-    configs(Dict) : Yüklenmiş config sözlüğü.
-    """
-
-    configs: Dict
-    logger: Logger = field(default=None, init=False)
-
-    def __post_init__(self) -> None:
-
-        self.logger = Logger(**self.configs["logger"])
-        self.logger.debug("##########CONFIGURATION##########")
-        self.logger.debug(self.configs)
-
-    def run(self) -> None:
-
-        mode = configs.get("mode")
-
-        if mode == "train": 
-            train.run(self.configs, self.logger)
-        elif mode == "predict":
-            inference.run(self.configs, self.logger)
-        else:
-            self.logger.error(f"Geçersiz mod: '{mode}.")
-            raise ValueError(f"Geçersiz mod: '{mode}'. Beklenen 'train' yada 'predict' ")
+from app.camera import Camera
+from app.inference import Inference
 
 
+def main(args, configs):
+    logger = Logger(**configs["logger"])
+    logger.debug("############ CONFIGURATIONS ############")
+    logger.debug(configs)
+
+    mode = configs.get("mode")
+
+    if mode == "train":
+        pass
+
+    elif mode == "predict":
+        camera = Camera(**configs["camera"])
+        detector = Inference(**configs["inference"])
+        logger.info("Çıkarım başlatıldı")
+
+        for frame in camera.stream():
+            if not camera.show(detector.infer(frame)):
+                logger.info("Kullanıcı çıkış yaptı")
+                break
+
+        logger.info("Çıkarım sonlandı")
+
+    else:
+        logger.error(f"Geçersiz mod: '{mode}'")
+        raise ValueError(f"Geçersiz mod: '{mode}'. Beklenen: 'train' veya 'predict'")
 
 
 if __name__ == "__main__":
-
     import argparse
 
     parser = argparse.ArgumentParser(description="Computer Vision Pipeline")
@@ -47,4 +39,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     configs = Configs().load(config_name=args.env)
-    app(configs=configs).run()
+    main(args, configs)
