@@ -1,27 +1,28 @@
-import cv2
-from app.camera import Camera
+from dataclasses import dataclass, field
+from ultralytics import YOLO
+
+@dataclass
+class Inference:
+    weights: str = "yolo26n.pt"
+    conf: float = 0.25
+    imgsz: int = 640
+    device: int = 0
+    model: YOLO = field(default=None, init=False)
+
+    def __post_init__(self) -> None:
+        self.model = YOLO(self.weights)
+
+    def infer(self, frame):
+        results = self.model(frame, conf=self.conf, imgsz=self.imgsz,device=self.device, verbose=False)
+        return results[0].plot()
 
 
-def run(configs, logger):
-    logger.info("Çıkarım modu başlatıldı.")
+if __name__ == "__main__":
+    from app.camera import Camera
 
-    camera = Camera(**configs["camera"])
-    camera.open()
-    logger.info(f"Kamera Açıldı: {configs['camera']['source']}")
+    camera = Camera()
+    detector = Inference()
 
-    try:
-        while True:
-            ret, frame =camera.read()
-            if not ret:
-                logger.warning("Kare okunamadı, döngü sonlandırılıyor")
-                break
-            
-            cv2.imshow("Camera", frame)
-
-            if cv2.waitKey(1) & 0XFF == ord("q"):
-                logger.info("Kullanıcı çıkış yaptı")
-                break
-    finally:
-        camera.close()
-        logger.info("Kamera Kapatıldı")
-    
+    for frame in camera.stream():
+        if not camera.show(detector.infer(frame)):
+            break
