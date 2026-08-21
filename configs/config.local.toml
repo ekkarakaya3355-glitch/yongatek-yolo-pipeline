@@ -11,7 +11,15 @@ author = "Author Name"
 filepath="./logs/project_name.log"
 rotation="50MB"
 
+[inference]
+weights = "models/yolo26n.pt"
+conf = 0.25
+device = 0
+imgsz = 1280
+
+
 [camera]
-source = 0
+source = "/home/emre/Desktop/workplace/yolo-pipeline/test_videos/2mintest.mp4"
 width = 640
 height = 480
+delay = 30
