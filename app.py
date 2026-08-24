@@ -1,3 +1,5 @@
+import cv2
+
 from app.config import Configs
 from app.logger import Logger
 from app.camera import Camera
@@ -17,14 +19,22 @@ def main(args, configs):
     elif mode == "predict":
         camera = Camera(**configs["camera"])
         detector = Inference(**configs["inference"])
+
+        camera.open()
+        cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
         logger.info("Çıkarım başlatıldı")
 
-        for frame in camera.stream():
-            if not camera.show(detector.infer(frame)):
+        while True:
+            ret, frame = camera.read()
+            if not ret:
+                logger.warning("Kare okunamadı")
+                break
+            cv2.imshow("Detection", detector.infer(frame))
+            if cv2.waitKey(camera.delay) & 0xFF == ord("q"):
                 logger.info("Kullanıcı çıkış yaptı")
                 break
-
-        logger.info("Çıkarım sonlandı")
+        camera.close()
+        logger.info("Kamera kapatıldı")
 
     else:
         logger.error(f"Geçersiz mod: '{mode}'")
