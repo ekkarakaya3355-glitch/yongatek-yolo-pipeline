@@ -5,12 +5,6 @@ import toml
 
 @dataclass
 class Configs:
-    """
-    Custom config class for load project configs.
-
-    Args
-    configs_folder_path(str) :  Folder path of config files. If file exist app will continue logging if not exists create a new one.
-    """
 
     configs_folder_path:str="./configs"
 

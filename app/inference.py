@@ -1,12 +1,15 @@
 from dataclasses import dataclass, field
+
 from ultralytics import YOLO
+
 
 @dataclass
 class Inference:
-    weights: str = "yolo26n.pt"
-    conf: float = 0.25
-    imgsz: int = 640
-    device: int = 0
+    
+    weights: str
+    conf: float
+    imgsz: int
+    device: int
     model: YOLO = field(default=None, init=False)
 
     def __post_init__(self) -> None:
@@ -18,11 +21,23 @@ class Inference:
 
 
 if __name__ == "__main__":
+    import cv2
     from app.camera import Camera
 
-    camera = Camera()
-    detector = Inference()
+    camera_configs = {"source": 0, "width": 640, "height": 480, "delay": 1}
+    inference_configs = {"weights": "yolo26n.pt", "conf": 0.25, "imgsz": 640, "device": 0}
 
-    for frame in camera.stream():
-        if not camera.show(detector.infer(frame)):
+    camera = Camera(**camera_configs)
+    detector = Inference(**inference_configs)
+
+    camera.open()
+    cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
+
+    while True:
+        ret, frame = camera.read()
+        if not ret:
             break
+        cv2.imshow("Detection", detector.infer(frame))
+        if cv2.waitKey(camera.delay) & 0xFF == ord("q"):
+            break
+    camera.close()

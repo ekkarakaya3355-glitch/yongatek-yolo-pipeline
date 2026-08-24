@@ -2,12 +2,14 @@ from dataclasses import dataclass, field
 
 import cv2
 
+
 @dataclass
 class Camera:
-    source: int = 0
-    width: int = 640
-    height: int = 480
-    delay: int = 1
+    
+    source: int
+    width: int
+    height: int
+    delay: int
     cap: cv2.VideoCapture = field(default=None, init=False)
 
     def open(self) -> None:
@@ -30,23 +32,19 @@ class Camera:
             self.cap = None
         cv2.destroyAllWindows()
 
-    def stream(self):
-        self.open()
-        cv2.namedWindow("Detection", cv2.WINDOW_NORMAL)
-        while True:
-            ret, frame = self.read()
-            if not ret:
-                break
-            yield frame
-        self.close()
-
-    def show(self, frame) -> bool:
-        cv2.imshow("Detection", frame)
-        return cv2.waitKey(self.delay) & 0xFF != ord("q")
-
 
 if __name__ == "__main__":
-    camera = Camera()
-    for frame in camera.stream():
-        if not camera.show(frame):
+    configs = {"source": 0, "width": 640, "height": 480, "delay": 1}
+    camera = Camera(**configs)
+
+    camera.open()
+    cv2.namedWindow("Camera", cv2.WINDOW_NORMAL)
+
+    while True:
+        ret, frame = camera.read()
+        if not ret:
             break
+        cv2.imshow("Camera", frame)
+        if cv2.waitKey(camera.delay) & 0xFF == ord("q"):
+            break
+    camera.close()
