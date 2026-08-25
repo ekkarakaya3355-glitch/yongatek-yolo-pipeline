@@ -1,25 +1,43 @@
-mode = "predict"
-
-[project] 
-name = "Project Name"
-description = "Project Description"
-version = "Project Version"
-company = ""
-author = "Author Name"
+[project]
+name = "YOLO Pipeline"
+description = "TensorRT hızlandırmalı nesne tespit pipeline'ı"
+version = "0.1.0"
+author = "Emre Karakaya"
 
 [logger]
-filepath="./logs/project_name.log"
-rotation="50MB"
-
-[inference]
-weights = "models/yolo26n.pt"
-conf = 0.25
-device = 0
-imgsz = 1280
-
+filepath = "./logs/project_name.log"
+rotation = "50MB"
 
 [camera]
-source = "/home/emre/Desktop/workplace/yolo-pipeline/test_videos/2mintest.mp4"
+source = "test_videos/traffic_test.mp4"
 width = 640
 height = 480
-delay = 30
+delay = 1
+
+[benchmark]
+pytorch_weights = "models/pytorch/yolo26s.pt"
+fp32_weights = "models/engine/yolo26s_fp32.engine"
+fp16_weights = "models/engine/yolo26s_fp16.engine"
+warmup = 20
+runs = 100
+
+[inference]
+weights = "models/pytorch/yolo26s.pt"
+conf = 0.30
+imgsz = 960
+device = 0
+
+[export]
+weights = "models/pytorch/yolo26s.pt"
+onnx_path = "models/onnx/yolo26s_fp32.onnx"
+onnx_fp16_path = "models/onnx/yolo26s_fp16.onnx"
+imgsz = 960
+opset = 17
+device = 0
+
+[engine]
+onnx_path = "models/onnx/yolo26s_fp32.onnx"
+onnx_fp16_path = "models/onnx/yolo26s_fp16.onnx"
+fp32_path = "models/engine/yolo26s_fp32.engine"
+fp16_path = "models/engine/yolo26s_fp16.engine"
+workspace = 4
