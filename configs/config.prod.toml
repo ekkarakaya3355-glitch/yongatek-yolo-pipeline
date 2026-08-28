@@ -9,10 +9,17 @@ filepath = "./logs/production.log"
 rotation = "100MB"
 
 [camera]
-source = "test_videos/traffic_test.mp4"
+source = "test_videos/2mintest.mp4"
 width = 1920
 height = 1080
-delay = 1
+delay = 30
+
+[benchmark]
+pytorch_weights = "models/pytorch/yolo26s.pt"
+fp32_weights = "models/engine/yolo26s_fp32.engine"
+fp16_weights = "models/engine/yolo26s_fp16.engine"
+warmup = 20
+runs = 100
 
 [inference]
 weights = "models/engine/yolo26s_fp16.engine"
