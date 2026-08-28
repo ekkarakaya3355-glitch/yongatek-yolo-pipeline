@@ -27,17 +27,20 @@ def gpu_memory_mb():
     return (total - free) / (1024 ** 2)
 
 
-def benchmark(detector, frame, warmup, runs):
+def benchmark(detector, frame, warmup, runs, mem_before):
     for _ in range(warmup):
         detector.infer(frame.copy())
     torch.cuda.synchronize()
 
+    memory_mb = gpu_memory_mb() - mem_before
+
     timings = []
     for _ in range(runs):
+        img = frame.copy()  
         torch.cuda.synchronize()
         t0 = time.perf_counter()
 
-        detector.infer(frame.copy())
+        detector.infer(img)
 
         torch.cuda.synchronize()
         timings.append((time.perf_counter() - t0) * 1000)
@@ -49,7 +52,7 @@ def benchmark(detector, frame, warmup, runs):
         "median_ms": np.median(timings),
         "p95_ms": np.percentile(timings, 95),
         "fps": 1000 / timings.mean(),
-        "memory_mb": gpu_memory_mb(),
+        "memory_mb": memory_mb,
     }
 
 
@@ -86,17 +89,21 @@ if __name__ == "__main__":
     print(f"Test karesi : {frame.shape}")
     print(f"imgsz={infer_cfg['imgsz']}  warmup={bench['warmup']}  runs={bench['runs']}")
 
+
     models = {
-        "PyTorch (.pt)": bench["pytorch_weights"],
-        "TensorRT FP32": bench["fp32_weights"],
-        "TensorRT FP16": bench["fp16_weights"],
+        "PyTorch": (bench["pytorch_weights"], True),
+        "TensorRT FP32": (bench["fp32_weights"], False),
+        "TensorRT FP16": (bench["fp16_weights"], True),
     }
 
     results = {}
-    for name, weights in models.items():
+    for name, (weights, tf32) in models.items():
         print(f"Ölçülüyor: {name}")
+        torch.backends.cudnn.allow_tf32 = tf32
+        torch.cuda.empty_cache()
+        mem_before = gpu_memory_mb()
         detector = load_detector(weights, infer_cfg)
-        results[name] = benchmark(detector, frame, bench["warmup"], bench["runs"])
+        results[name] = benchmark(detector, frame, bench["warmup"], bench["runs"], mem_before)
         del detector
         torch.cuda.empty_cache()
 
