@@ -5,39 +5,39 @@ version = "0.1.0"
 author = "Emre Karakaya"
 
 [logger]
-filepath = "./logs/project_name.log"
+filepath = "./logs/local.log"
 rotation = "50MB"
 
 [camera]
-source = "test_videos/traffic_test.mp4"
+source = "test_videos/2mintest.mp4"
 width = 640
 height = 480
 delay = 1
 
 [benchmark]
-pytorch_weights = "models/pytorch/yolo26s.pt"
-fp32_weights = "models/engine/yolo26s_fp32.engine"
-fp16_weights = "models/engine/yolo26s_fp16.engine"
+pytorch_weights = "models/pytorch/yolo26x.pt"
+fp32_weights = "models/engine/yolo26x_fp32.engine"
+fp16_weights = "models/engine/yolo26x_fp16.engine"
 warmup = 20
 runs = 100
 
 [inference]
-weights = "models/pytorch/yolo26s.pt"
+weights = "models/engine/yolo26x_fp16.engine"
 conf = 0.30
 imgsz = 960
 device = 0
 
 [export]
-weights = "models/pytorch/yolo26s.pt"
-onnx_path = "models/onnx/yolo26s_fp32.onnx"
-onnx_fp16_path = "models/onnx/yolo26s_fp16.onnx"
+weights = "models/pytorch/yolo26x.pt"
+onnx_path = "models/onnx/yolo26x_fp32.onnx"
+onnx_fp16_path = "models/onnx/yolo26x_fp16.onnx"
 imgsz = 960
 opset = 17
 device = 0
 
 [engine]
-onnx_path = "models/onnx/yolo26s_fp32.onnx"
-onnx_fp16_path = "models/onnx/yolo26s_fp16.onnx"
-fp32_path = "models/engine/yolo26s_fp32.engine"
-fp16_path = "models/engine/yolo26s_fp16.engine"
+onnx_path = "models/onnx/yolo26x_fp32.onnx"
+onnx_fp16_path = "models/onnx/yolo26x_fp16.onnx"
+fp32_path = "models/engine/yolo26x_fp32.engine"
+fp16_path = "models/engine/yolo26x_fp16.engine"
 workspace = 4
