@@ -20,7 +20,9 @@ TOML tabanlı yapılandırma ile YOLO nesne tespiti yapan, PyTorch ve TensorRT �
 │   ├── logger.py           # Loglama sınıfı
 │   ├── camera.py           # Kamera / video kaynağı
 │   ├── inference.py        # PyTorch (Ultralytics) çıkarımı
-│   └── trt_inference.py    # TensorRT çıkarımı
+│   ├── trt_inference.py    # TensorRT çıkarımı
+│   ├── export_onnx.py      # PyTorch → ONNX
+│   └── build_engine.py     # ONNX → TensorRT engine
 ├── configs/
 │   ├── config.local.toml
 │   └── config.prod.toml
@@ -29,8 +31,6 @@ TOML tabanlı yapılandırma ile YOLO nesne tespiti yapan, PyTorch ve TensorRT �
 │   ├── onnx/               # .onnx dosyaları
 │   └── engine/             # .engine dosyaları
 ├── app.py                  # Giriş noktası
-├── export_onnx.py          # PyTorch → ONNX
-├── build_engine.py         # ONNX → TensorRT engine
 ├── benchmark.py            # Performans karşılaştırması
 └── requirements.txt
 ```
@@ -64,7 +64,7 @@ Uzantı `.engine` ise TensorRT, değilse PyTorch çıkarımı kullanılır.
 ### ONNX export
 
 ```bash
-python -m export_onnx --env local
+python -m app.export_onnx --env local
 ```
 
 FP32 ve FP16 olmak üzere iki ONNX dosyası üretir.
@@ -72,7 +72,7 @@ FP32 ve FP16 olmak üzere iki ONNX dosyası üretir.
 ### TensorRT engine derleme
 
 ```bash
-python -m build_engine --env local
+python -m app.build_engine --env local
 ```
 
 FP32 ve FP16 engine'lerini derler. Derleme birkaç dakika sürebilir ve GPU'yu yoğun kullanır.
