@@ -34,7 +34,9 @@ class EngineBuilder:
             raise RuntimeError(f"ONNX parse edilemedi: {onnx_path}")
 
         config = builder.create_builder_config()
-        config.set_flag(trt.BuilderFlag.TF32)
+        # TF32 TensorRT'de varsayilan olarak aciktir ve FP32 katmanlari FP16
+        # hassasiyetinde carpar. Kapatiyoruz ki FP32 satiri gercekten FP32 olsun.
+        config.clear_flag(trt.BuilderFlag.TF32)
         config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, self.workspace * (1 << 30))
 
         print(f"Engine derleniyor: {engine_path}")
