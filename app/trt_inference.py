@@ -1,8 +1,19 @@
 from dataclasses import dataclass, field
+from pathlib import Path
+import json
 
 import cv2
 import torch
 import tensorrt as trt
+
+
+COCO_PATH = Path(__file__).resolve().parent.parent / "coco.json"
+
+with open(COCO_PATH, encoding="utf-8") as f:
+    _coco = json.load(f)
+
+COCO_NAMES = tuple(_coco["names"])
+COCO_COLORS = tuple(tuple(color) for color in _coco["colors"])
 
 
 @dataclass
@@ -43,29 +54,40 @@ class TRTInference:
 
         self.input_dtype = self.buffers[self.input_name].dtype
 
-        engine_imgsz = self.buffers[self.input_name].shape[-1]
-        if engine_imgsz != self.imgsz:
+        engine_h, engine_w = self.buffers[self.input_name].shape[-2:]
+        if (engine_h, engine_w) != (self.imgsz, self.imgsz):
             raise ValueError(
-                f"Engine girdi boyutu {engine_imgsz}, config imgsz={self.imgsz}. "
+                f"Engine girdi boyutu {engine_h}x{engine_w}, config imgsz={self.imgsz}. "
                 f"Engine'i yeniden derleyin veya config'i düzeltin."
             )
 
     def preprocess(self, frame):
-        img = torch.from_numpy(frame).to(self.torch_device)  
+        
+        h, w = frame.shape[:2]
+        ratio = min(self.imgsz / h, self.imgsz / w)
+        new_h, new_w = round(h * ratio), round(w * ratio)
+        pad_x, pad_y = (self.imgsz - new_w) // 2, (self.imgsz - new_h) // 2
+
+        img = torch.from_numpy(frame).to(self.torch_device)
         img = img.permute(2, 0, 1)                           
-        img = img[[2, 1, 0]]                                
-        img = img.unsqueeze(0).float()                       
+        img = img[[2, 1, 0]]                                 
+        img = img.unsqueeze(0).float()
         img = torch.nn.functional.interpolate(
-            img, size=(self.imgsz, self.imgsz),
+            img, size=(new_h, new_w),
             mode="bilinear", align_corners=False
         )
-        return (img / 255.0).to(self.input_dtype)
 
-    def infer(self, frame):
-        h, w = frame.shape[:2]
+        canvas = torch.full((1, 3, self.imgsz, self.imgsz), 114 / 255,
+                            dtype=self.input_dtype, device=self.torch_device)
+        canvas[:, :, pad_y:pad_y + new_h, pad_x:pad_x + new_w] = (img / 255.0).to(self.input_dtype)
 
+        return canvas, ratio, pad_x, pad_y
+
+    def infer(self, frame, draw=True):
+      
         with torch.cuda.stream(self.stream):
-            self.buffers[self.input_name].copy_(self.preprocess(frame))
+            canvas, ratio, pad_x, pad_y = self.preprocess(frame)
+            self.buffers[self.input_name].copy_(canvas)
             ok = self.context.execute_async_v3(stream_handle=self.stream.cuda_stream)
         self.stream.synchronize()
 
@@ -74,16 +96,27 @@ class TRTInference:
 
         detections = self.buffers[self.output_name].cpu().numpy()[0]
 
-        return self.draw(frame, detections, w / self.imgsz, h / self.imgsz)
+        if not draw:
+            return detections, ratio, pad_x, pad_y
 
-    def draw(self, frame, detections, scale_x, scale_y):
+        return self.draw(frame.copy(), detections, ratio, pad_x, pad_y)
+
+    def draw(self, frame, detections, ratio, pad_x, pad_y):
+        h, w = frame.shape[:2]
         detections = detections[detections[:, 4] >= self.conf]
+
         for x1, y1, x2, y2, score, cls in detections:
-            p1 = (int(x1 * scale_x), int(y1 * scale_y))
-            p2 = (int(x2 * scale_x), int(y2 * scale_y))
-            cv2.rectangle(frame, p1, p2, (0, 255, 0), 2)
-            cv2.putText(frame, f"{int(cls)} %{score * 100:.0f}",
-                        (p1[0], p1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 1)
+
+            p1 = (min(max(int((x1 - pad_x) / ratio), 0), w - 1), min(max(int((y1 - pad_y) / ratio), 0), h - 1))
+            p2 = (min(max(int((x2 - pad_x) / ratio), 0), w - 1), min(max(int((y2 - pad_y) / ratio), 0), h - 1))
+
+            index = int(cls)
+            name = COCO_NAMES[index] if index < len(COCO_NAMES) else str(index)
+            color = COCO_COLORS[index % len(COCO_COLORS)]
+
+            cv2.rectangle(frame, p1, p2, color, 2)
+            cv2.putText(frame, f"{name} %{score * 100:.0f}",
+                        (p1[0], p1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1.5, color, 1)
         return frame
 
 
@@ -92,9 +125,9 @@ if __name__ == "__main__":
 
     camera_configs = {"source": 0, "width": 640, "height": 480, "delay": 1}
     inference_configs = {
-        "weights": "models/engine/yolo26s_fp16.engine",
+        "weights": "models/engine/yolo26x_fp16.engine",
         "conf": 0.30,
-        "imgsz": 960,
+        "imgsz": 640,
         "device": 0,
     }
 
