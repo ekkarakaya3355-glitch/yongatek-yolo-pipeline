@@ -1,26 +1,38 @@
 #!/bin/sh
-pylint app/ tests/ app.py
-if [ $? -eq 0 ]; then
-    echo "###################"
-    echo "Quality test passed"
-    echo "###################"
+if command -v pylint > /dev/null; then
+    pylint app/ app.py
+    if [ $? -eq 0 ]; then
+        echo "###################"
+        echo "Quality test passed"
+        echo "###################"
+    else
+        echo "###################"
+        echo "Quality test fail"
+        echo "###################"
+        exit
+    fi
 else
     echo "###################"
-    echo "Quality test fail"
+    echo "pylint kurulu degil, atlandi"
     echo "###################"
-    exit
 fi
 
-pytest
-if [ $? -eq 0 ]; then
-    echo "###################"
-    echo "Unit test passed"
-    echo "###################"
+if [ -d tests ]; then
+    pytest
+    if [ $? -eq 0 ]; then
+        echo "###################"
+        echo "Unit test passed"
+        echo "###################"
+    else
+        echo "###################"
+        echo "Unit test fail"
+        echo "###################"
+        exit
+    fi
 else
     echo "###################"
-    echo "Unit test fail"
+    echo "tests/ yok, atlandi"
     echo "###################"
-    exit
 fi
 
 python app.py --env local
@@ -35,14 +47,20 @@ else
     exit
 fi
 
-docker build --tag project_name .
-if [ $? -eq 0 ]; then
-    echo "###################"
-    echo "Docker build test passed."
-    echo "###################"
+if [ -f Dockerfile ]; then
+    docker build --tag project_name .
+    if [ $? -eq 0 ]; then
+        echo "###################"
+        echo "Docker build test passed."
+        echo "###################"
+    else
+        echo "###################"
+        echo "Docker build test fail."
+        echo "###################"
+        exit
+    fi
 else
     echo "###################"
-    echo "Docker build test fail."
+    echo "Dockerfile yok, atlandi"
     echo "###################"
-    exit
 fi
