@@ -1,3 +1,12 @@
 toml==0.10.2
 loguru==0.7.3
 opencv-python==5.0.0.93
+numpy==2.5.2
+ultralytics==8.4.123
+
+# torch CUDA yapisiyla kurulmali, aksi halde CPU surumu gelir:
+#   pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+torch==2.13.0
+
+# TensorRT yalnizca engine derleme ve engine ile cikarim icin gerekli
+tensorrt==11.2.1.2
