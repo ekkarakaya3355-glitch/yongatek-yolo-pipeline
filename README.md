@@ -32,6 +32,7 @@ TOML tabanlı yapılandırma ile YOLO nesne tespiti yapan, PyTorch ve TensorRT �
 │   └── engine/             # .engine dosyaları
 ├── app.py                  # Giriş noktası
 ├── benchmark.py            # Performans karşılaştırması
+├── coco.json               # COCO sınıf isimleri ve renkleri
 └── requirements.txt
 ```
 
