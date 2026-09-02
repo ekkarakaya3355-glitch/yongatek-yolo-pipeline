@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict
 import os
+import sys
 import toml
 
 @dataclass
@@ -10,9 +11,12 @@ class Configs:
 
     def load(self, config_name:str)->Dict:
         if os.environ.get("CONFIG_FILE") is not None:
+            print(f"CONFIG_FILE ortam değişkeni '{config_name}' yerine "
+                  f"'{os.environ['CONFIG_FILE']}' kullanılmasına yol açıyor.", file=sys.stderr)
             config_name = os.environ["CONFIG_FILE"]
         config_file_path = os.path.join(self.configs_folder_path, f"config.{config_name}.toml")
-        assert os.path.isfile(config_file_path), f"Given configuration file is not exist. File: {config_file_path}"
+        if not os.path.isfile(config_file_path):
+            raise FileNotFoundError(f"Yapılandırma dosyası bulunamadı: {config_file_path}")
         configs = toml.load(config_file_path)
 
         return configs
