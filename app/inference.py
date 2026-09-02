@@ -15,13 +15,15 @@ class Inference:
     def __post_init__(self) -> None:
         self.model = YOLO(self.weights)
 
-    def infer(self, frame):
-        results = self.model(frame, conf=self.conf, imgsz=self.imgsz,device=self.device, verbose=False)
-        return results[0].plot()
+    def infer(self, frame, draw=True):
+        results = self.model(frame, conf=self.conf, imgsz=self.imgsz, device=self.device,
+                             verbose=False, rect=False)
+        return results[0].plot() if draw else results[0]
 
 
 if __name__ == "__main__":
     import cv2
+
     from app.camera import Camera
 
     camera_configs = {"source": 0, "width": 640, "height": 480, "delay": 1}
