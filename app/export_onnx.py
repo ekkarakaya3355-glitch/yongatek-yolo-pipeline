@@ -43,7 +43,7 @@ class ONNXExporter:
 
         dummy_input = torch.zeros(1, 3, self.imgsz, self.imgsz).to(self.device)
         if fp16:
-            dummy_input = dummy_input.half()  # Tracing
+            dummy_input = dummy_input.half() 
 
         with torch.no_grad():
             torch.onnx.export(
