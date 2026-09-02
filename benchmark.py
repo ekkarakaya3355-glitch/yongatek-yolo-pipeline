@@ -27,23 +27,38 @@ def gpu_memory_mb():
     return (total - free) / (1024 ** 2)
 
 
-def benchmark(detector, frame, warmup, runs, mem_before):
+def benchmark(detector, source, warmup, runs, mem_before):
+    # her model videoyu bastan okur, yani ucu de ayni kareleri gorur
+    cap = cv2.VideoCapture(source)
+
     for _ in range(warmup):
-        detector.infer(frame.copy())
+        ok, frame = cap.read()
+        if not ok:
+            break
+        detector.infer(frame)
     torch.cuda.synchronize()
 
     memory_mb = gpu_memory_mb() - mem_before
 
     timings = []
     for _ in range(runs):
-        img = frame.copy()  
+        # decode olcumun disinda; app.py'de de cikarim suresine dahil degil
+        ok, frame = cap.read()
+        if not ok:
+            break
+
         torch.cuda.synchronize()
         t0 = time.perf_counter()
 
-        detector.infer(img)
+        detector.infer(frame)
 
         torch.cuda.synchronize()
         timings.append((time.perf_counter() - t0) * 1000)
+
+    cap.release()
+
+    if not timings:
+        raise RuntimeError(f"Olculecek kare kalmadi: {source}")
 
     timings = np.array(timings)
 
@@ -79,31 +94,42 @@ if __name__ == "__main__":
     bench = configs["benchmark"]
     infer_cfg = configs["inference"]
 
-    cap = cv2.VideoCapture(configs["camera"]["source"])
+    source = configs["camera"]["source"]
+
+    cap = cv2.VideoCapture(source)
     ret, frame = cap.read()
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cap.release()
 
     if not ret:
-        raise RuntimeError("Test karesi okunamadı")
+        raise RuntimeError(f"Video okunamadı: {source}")
 
-    print(f"Test karesi : {frame.shape}")
+    needed = bench["warmup"] + bench["runs"]
+    if 0 < total_frames < needed:
+        print(f"Uyarı: video {total_frames} kare, {needed} gerekiyor; ölçüm kısa kesilecek\n")
+
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+
+    print(f"Video       : {source}  {frame.shape[1]}x{frame.shape[0]}  {total_frames} kare")
     print(f"imgsz={infer_cfg['imgsz']}  warmup={bench['warmup']}  runs={bench['runs']}")
-
+    print(f"Ölçülen: app.py ile aynı yol (çizim dahil), kareler videodan sırayla okunuyor, "
+          f"her backend letterbox ile {infer_cfg['imgsz']}x{infer_cfg['imgsz']} girdi görüyor")
+    print("FP32 satırları saf FP32'dir, TF32 hem TensorRT hem PyTorch tarafında kapalı\n")
 
     models = {
-        "PyTorch": (bench["pytorch_weights"], True),
-        "TensorRT FP32": (bench["fp32_weights"], False),
-        "TensorRT FP16": (bench["fp16_weights"], True),
+        "PyTorch FP32": bench["pytorch_weights"],
+        "TensorRT FP32": bench["fp32_weights"],
+        "TensorRT FP16": bench["fp16_weights"],
     }
 
     results = {}
-    for name, (weights, tf32) in models.items():
+    for name, weights in models.items():
         print(f"Ölçülüyor: {name}")
-        torch.backends.cudnn.allow_tf32 = tf32
         torch.cuda.empty_cache()
         mem_before = gpu_memory_mb()
         detector = load_detector(weights, infer_cfg)
-        results[name] = benchmark(detector, frame, bench["warmup"], bench["runs"], mem_before)
+        results[name] = benchmark(detector, source, bench["warmup"], bench["runs"], mem_before)
         del detector
         torch.cuda.empty_cache()
 
