@@ -108,14 +108,11 @@ if __name__ == "__main__":
     if 0 < total_frames < needed:
         print(f"Uyarı: video {total_frames} kare, {needed} gerekiyor; ölçüm kısa kesilecek\n")
 
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
-
     print(f"Video       : {source}  {frame.shape[1]}x{frame.shape[0]}  {total_frames} kare")
     print(f"imgsz={infer_cfg['imgsz']}  warmup={bench['warmup']}  runs={bench['runs']}")
     print(f"Ölçülen: app.py ile aynı yol (çizim dahil), kareler videodan sırayla okunuyor, "
           f"her backend letterbox ile {infer_cfg['imgsz']}x{infer_cfg['imgsz']} girdi görüyor")
-    print("FP32 satırları saf FP32'dir, TF32 hem TensorRT hem PyTorch tarafında kapalı\n")
+    print("Backend'ler varsayılan ayarlarıyla ölçülüyor")
 
     models = {
         "PyTorch FP32": bench["pytorch_weights"],

@@ -105,6 +105,12 @@ class TRTInference:
         h, w = frame.shape[:2]
         detections = detections[detections[:, 4] >= self.conf]
 
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        scale = max(0.35, h / 720.0)            # 1080p -> 1.5
+        thickness = max(1, round(scale * 0.7))  # 1080p -> 1
+        kutu = max(1, round(h / 540.0))         # 1080p -> 2
+        bosluk = max(2, round(h * 0.006))       # 1080p -> 6
+
         for x1, y1, x2, y2, score, cls in detections:
 
             p1 = (min(max(int((x1 - pad_x) / ratio), 0), w - 1), min(max(int((y1 - pad_y) / ratio), 0), h - 1))
@@ -114,9 +120,14 @@ class TRTInference:
             name = COCO_NAMES[index] if index < len(COCO_NAMES) else str(index)
             color = COCO_COLORS[index % len(COCO_COLORS)]
 
-            cv2.rectangle(frame, p1, p2, color, 2)
-            cv2.putText(frame, f"{name} %{score * 100:.0f}",
-                        (p1[0], p1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1.5, color, 1)
+            cv2.rectangle(frame, p1, p2, color, kutu)
+
+            etiket = f"{name} %{score * 100:.0f}"
+            (_, th), _ = cv2.getTextSize(etiket, font, scale, thickness)
+            y = p1[1] - bosluk
+            if y - th < 0:                      # kutu tepedeyse etiket kare disina tasiyor
+                y = p1[1] + th + bosluk
+            cv2.putText(frame, etiket, (p1[0], y), font, scale, color, thickness)
         return frame
 
 

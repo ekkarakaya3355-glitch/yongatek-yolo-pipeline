@@ -1,5 +1,8 @@
+import os
 import time
 from pathlib import Path
+
+os.environ.setdefault("QT_LOGGING_RULES", "*=false")
 
 import cv2
 
@@ -13,6 +16,23 @@ from app.trt_inference import TRTInference
 def smooth(current, period):
     fps = 1.0 / period
     return fps if current == 0 else current * 0.9 + fps * 0.1
+
+
+def overlay(frame, text):
+    """FPS yazisini kare boyutuna oranlar; 1080p'de eski gorunumu verir."""
+    h, w = frame.shape[:2]
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    margin = max(6, round(h * 0.02))
+    scale = max(0.35, h / 900.0)
+    thickness = max(1, round(scale * 1.7))
+
+    (tw, th), _ = cv2.getTextSize(text, font, scale, thickness)
+    if tw > w - 2 * margin:                    # dar karede genisligi de gozet
+        scale *= (w - 2 * margin) / tw
+        thickness = max(1, round(scale * 1.7))
+        (tw, th), _ = cv2.getTextSize(text, font, scale, thickness)
+
+    cv2.putText(frame, text, (margin, margin + th), font, scale, (0, 255, 0), thickness)
 
 
 def main(args, configs):
@@ -66,10 +86,8 @@ def main(args, configs):
             infer_fps = smooth(infer_fps, period)
 
             if display:
-                cv2.putText(output,
-                            f"Inference {infer_fps:.0f} | "
-                            f"Pipeline (decode+inference+display) {loop_fps:.0f} FPS",
-                            (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
+                overlay(output, f"Inference {infer_fps:.0f} | "
+                                f"Pipeline (decode+inference+display) {loop_fps:.0f} FPS")
                 cv2.imshow("Detection", output)
 
             now = time.perf_counter()
